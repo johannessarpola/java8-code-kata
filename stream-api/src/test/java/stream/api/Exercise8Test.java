@@ -11,6 +11,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.hasItems;
@@ -27,9 +28,11 @@ public class Exercise8Test extends ClassicOnlineStore {
         /**
          * Create a set of item names that are in {@link Customer.wantToBuy} but not on sale in any shop.
          */
-        List<String> itemListOnSale = null;
-        Set<String> itemSetNotOnSale = null;
-
+        Stream<Item> itemsOnSaleStream = shopStream.flatMap(s -> s.getItemList().stream());
+        Stream<Item> itemsWantToBuyStream = customerStream.flatMap(c->c.getWantToBuy().stream());
+        Set<String> itemListOnSaleStrings = itemsOnSaleStream.map(Item::getName).collect(Collectors.toSet());
+        Set<String> itemSetNotOnSale = itemsWantToBuyStream.map(Item::getName).filter(s -> !itemListOnSaleStrings.contains(s)).collect(Collectors.toSet());
+        //  .filter(itemName -> itemListOnSale.stream().noneMatch(itemName::equals)) <- Could also be (probably better performance?)
         assertThat(itemSetNotOnSale, hasSize(3));
         assertThat(itemSetNotOnSale, hasItems("bag", "pants", "coat"));
     }
@@ -44,6 +47,8 @@ public class Exercise8Test extends ClassicOnlineStore {
          * Items that are not on sale can be counted as 0 money cost.
          * If there is several same items with different prices, customer can choose the cheapest one.
          */
+        // Sum all "baskets prices"
+        // See that it's lower than budget
         List<Item> onSale = null;
         Predicate<Customer> havingEnoughMoney = null;
         List<String> customerNameList = null;
