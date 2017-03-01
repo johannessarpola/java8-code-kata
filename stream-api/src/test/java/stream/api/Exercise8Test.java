@@ -8,6 +8,7 @@ import common.test.tool.entity.Shop;
 
 import org.junit.Test;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -49,9 +50,16 @@ public class Exercise8Test extends ClassicOnlineStore {
          */
         // Sum all "baskets prices"
         // See that it's lower than budget
-        List<Item> onSale = null;
-        Predicate<Customer> havingEnoughMoney = null;
-        List<String> customerNameList = null;
+        List<Item> onSale = shopStream.flatMap(s -> s.getItemList().stream()).sorted(Comparator.comparing(Item::getPrice)).collect(Collectors.toList());
+        // now we have sorted list of items with ascending to price so the first is the lowest
+        Predicate<Customer> havingEnoughMoney = c ->
+            c.getBudget() >=
+            c.getWantToBuy().stream().mapToInt(wi -> onSale.stream()
+                    .filter(si -> si.getName().equalsIgnoreCase(wi.getName()))
+                    .findFirst().map(Item::getPrice).orElse(0))
+                    .sum();
+
+        List<String> customerNameList = customerStream.filter(havingEnoughMoney).map(Customer::getName).collect(Collectors.toList());
 
         assertThat(customerNameList, hasSize(7));
         assertThat(customerNameList, hasItems("Joe", "Patrick", "Chris", "Kathy", "Alice", "Andrew", "Amy"));
