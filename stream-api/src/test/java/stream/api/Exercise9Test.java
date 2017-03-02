@@ -112,7 +112,7 @@ public class Exercise9Test extends ClassicOnlineStore {
 
         Collector<String, ?, String> toBitString = null;
 
-        String bitString = Arrays.stream(bitList.split(",")).collect(toBitString);
+        //String bitString = Arrays.stream(bitList.split(",")).collect(toBitString);
         //assertThat(bitString, is("01011000101001111000011100000000100001110111010101"));
     }
 }
