@@ -14,6 +14,8 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -21,7 +23,8 @@ import static org.junit.Assert.*;
 
 public class Exercise9Test extends ClassicOnlineStore {
 
-    @Easy @Test
+    @Easy
+    @Test
     public void simplestStringJoin() {
         List<Customer> customerList = this.mall.getCustomerList();
 
@@ -35,12 +38,13 @@ public class Exercise9Test extends ClassicOnlineStore {
         Function<StringJoiner, String> finisher = (sj) -> sj.toString();
 
         Collector<String, ?, String> toCsv =
-            new CollectorImpl<>(supplier, accumulator, combiner, finisher, Collections.emptySet());
+                new CollectorImpl<>(supplier, accumulator, combiner, finisher, Collections.emptySet());
         String nameAsCsv = customerList.stream().map(Customer::getName).collect(toCsv);
         assertThat(nameAsCsv, is("Joe,Steven,Patrick,Diana,Chris,Kathy,Alice,Andrew,Martin,Amy"));
     }
 
-    @Difficult @Test
+    @Difficult
+    @Test
     public void mapKeyedByItems() {
         List<Customer> customerList = this.mall.getCustomerList();
 
@@ -49,16 +53,38 @@ public class Exercise9Test extends ClassicOnlineStore {
          * values as {@link Set} of customers who are wanting to buy that item.
          * The collector will be used by parallel stream.
          */
-        Supplier<Object> supplier = null;
-        BiConsumer<Object, Customer> accumulator = null;
-        BinaryOperator<Object> combiner = null;
-        Function<Object, Map<String, Set<String>>> finisher = null;
+        Supplier<Map<String, Set<String>>> supplier = () -> (new HashMap<>());
+
+        BiConsumer<Map<String, Set<String>>, Customer> accumulator = (stringSetMap, customer) -> {
+            customer.getWantToBuy().forEach(
+                    item -> {
+                        if (!stringSetMap.containsKey(item.getName())) {
+                            stringSetMap.put(item.getName(), new HashSet<>());
+                        }
+                        stringSetMap.get(item.getName()).add(customer.getName());
+                    }
+            );
+        };
+
+        BinaryOperator<Map<String, Set<String>>> combiner = (map, otherMap) -> {
+            otherMap.forEach((item, customers) ->
+                    map.merge(item, customers, (a, b) -> {
+                        a.addAll(b);
+                        return a;
+                    }));
+            return map;
+        };
+
+        Function<Map<String, Set<String>>, Map<String, Set<String>>> finisher = null;
 
         Collector<Customer, ?, Map<String, Set<String>>> toItemAsKey =
-            new CollectorImpl<>(supplier, accumulator, combiner, finisher, EnumSet.of(
-                Collector.Characteristics.CONCURRENT,
-                Collector.Characteristics.IDENTITY_FINISH));
+                new CollectorImpl<>(supplier, accumulator, combiner, finisher, EnumSet.of(
+                        Collector.Characteristics.CONCURRENT,
+                        Collector.Characteristics.IDENTITY_FINISH));
+
+
         Map<String, Set<String>> itemMap = customerList.stream().parallel().collect(toItemAsKey);
+
         assertThat(itemMap.get("plane"), containsInAnyOrder("Chris"));
         assertThat(itemMap.get("onion"), containsInAnyOrder("Patrick", "Amy"));
         assertThat(itemMap.get("ice cream"), containsInAnyOrder("Patrick", "Steven"));
@@ -69,7 +95,8 @@ public class Exercise9Test extends ClassicOnlineStore {
         assertThat(itemMap.get("desk"), containsInAnyOrder("Alice"));
     }
 
-    @Difficult @Test
+    @Difficult
+    @Test
     public void bitList2BitString() {
         String bitList = "22-24,9,42-44,11,4,46,14-17,5,2,38-40,33,50,48";
 
